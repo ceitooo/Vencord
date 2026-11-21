@@ -43,6 +43,7 @@ jobs:
                   cat out/version.json
 
             - name: Publicar release
-              run: gh release create "$GITHUB_REF_NAME" out/* --title "Vencord + StreamEnhance ${GITHUB_REF_NAME#ceito-v}" --notes "Build de Vencord (GPL-3.0) con el plugin StreamEnhance, para instalar desde CeitoTweaks. Código fuente: este repositorio en el commit $GITHUB_SHA."
+              run: |
+                  gh release create "$GITHUB_REF_NAME" out/* --title "Vencord + StreamEnhance ${GITHUB_REF_NAME#ceito-v}" --notes "Build de Vencord (GPL-3.0) con el plugin StreamEnhance, para instalar desde CeitoTweaks. Código fuente: este repositorio en el commit $GITHUB_SHA."
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
