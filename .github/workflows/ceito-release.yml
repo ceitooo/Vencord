@@ -1,0 +1,48 @@
+# Build de Vencord con StreamEnhance para CeitoTweaks.
+# Se publica al subir un tag "ceito-v*" (por ejemplo ceito-v1.15.18.1).
+# El release lleva el zip con dist/ y un version.json con su versión y sha256:
+# CeitoTweaks lo baja de releases/latest/download/version.json.
+name: Release CeitoTweaks
+on:
+    push:
+        tags:
+            - "ceito-v*"
+permissions:
+    contents: write
+
+jobs:
+    Release:
+        if: github.repository != 'Vendicated/Vencord'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 24
+                  cache: "pnpm"
+
+            - run: pnpm install --frozen-lockfile
+
+            # Standalone: sin git en la PC del usuario. Sin el actualizador de
+            # Vencord, porque las actualizaciones las baja CeitoTweaks.
+            - run: pnpm build --standalone --disable-updater
+
+            - name: Armar zip y version.json
+              run: |
+                  VERSION="${GITHUB_REF_NAME#ceito-v}"
+                  mkdir -p out paquete/dist
+                  cp dist/patcher.js dist/preload.js dist/renderer.js dist/renderer.css paquete/dist/
+                  cp dist/patcher.js.LEGAL.txt dist/renderer.js.LEGAL.txt paquete/dist/
+                  cp LICENSE paquete/dist/LICENSE.txt
+                  (cd paquete && zip -r -X ../out/vencord-streamenhance.zip dist)
+                  SHA=$(sha256sum out/vencord-streamenhance.zip | cut -d' ' -f1)
+                  printf '{"version":"%s","sha256":"%s","zip":"vencord-streamenhance.zip","commit":"%s"}\n' "$VERSION" "$SHA" "$GITHUB_SHA" > out/version.json
+                  cat out/version.json
+
+            - name: Publicar release
+              run: gh release create "$GITHUB_REF_NAME" out/* --title "Vencord + StreamEnhance ${GITHUB_REF_NAME#ceito-v}" --notes "Build de Vencord (GPL-3.0) con el plugin StreamEnhance, para instalar desde CeitoTweaks. Código fuente: este repositorio en el commit $GITHUB_SHA."
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
